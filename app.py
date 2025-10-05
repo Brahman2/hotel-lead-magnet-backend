@@ -26,8 +26,22 @@ SMTP_USERNAME = os.getenv('SMTP_USERNAME')  # Your email
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')  # App password
 FROM_EMAIL = os.getenv('FROM_EMAIL', SMTP_USERNAME)
 
+# Validate required environment variables
+if not ANTHROPIC_API_KEY:
+    print("WARNING: ANTHROPIC_API_KEY not set!")
+if not SMTP_USERNAME or not SMTP_PASSWORD:
+    print("WARNING: Email credentials not set!")
+
 # Initialize Anthropic client
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+client = None
+if ANTHROPIC_API_KEY:
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print("✅ Anthropic client initialized successfully")
+    except Exception as e:
+        print(f"❌ Error initializing Anthropic client: {e}")
+else:
+    print("❌ Cannot initialize Anthropic client - API key missing")
 
 @app.route('/', methods=['GET'])
 def home():
@@ -89,6 +103,9 @@ def generate_hotel_report(hotel_name, city, state, address):
     """
     Generate comprehensive hotel report using Claude API
     """
+    
+    if not client:
+        raise Exception("Anthropic client not initialized - check API key")
     
     prompt = f"""Generate a comprehensive Public Signals Performance Report for this hotel property.
 
@@ -271,6 +288,6 @@ def send_report_email(data, report_html):
         raise
 
 if __name__ == '__main__':
-    # For local development
+    # For local development and Railway
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
