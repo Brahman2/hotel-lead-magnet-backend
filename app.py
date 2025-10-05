@@ -14,9 +14,18 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import json
+import threading
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for your frontend
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://delightful-pavlova-1439dc.netlify.app",
+            "http://localhost:*",
+            "https://*.netlify.app"
+        ]
+    }
+})  # Enable CORS for your frontend
 
 # Configuration from environment variables
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
@@ -53,14 +62,67 @@ def home():
         'timestamp': datetime.now().isoformat()
     })
 
-@app.route('/api/generate-report', methods=['POST'])
+@app.route('/api/health', methods=['GET'])
+def health():
+    """Detailed health check"""
+    checks = {
+        'anthropic_client': client is not None,
+        'anthropic_api_key': ANTHROPIC_API_KEY is not None and len(ANTHROPIC_API_KEY) > 10,
+        'smtp_configured': SMTP_USERNAME is not None and SMTP_PASSWORD is not None,
+        'from_email': FROM_EMAIL is not None
+    }
+    
+    all_healthy = all(checks.values())
+    
+    return jsonify({
+        'status': 'healthy' if all_healthy else 'unhealthy',
+        'checks': checks,
+        'timestamp': datetime.now().isoformat()
+    }), 200 if all_healthy else 503
+
+def generate_and_send_report_background(data):
+    """
+    Background task to generate and send report
+    This runs in a separate thread to avoid timeout
+    """
+    try:
+        hotel_name = data.get('hotelName')
+        city = data.get('city')
+        state = data.get('state')
+        address = data.get('address', 'Not provided')
+        email = data.get('email')
+        
+        print(f"🤖 [Background] Generating report for {hotel_name}...")
+        report_html = generate_hotel_report(hotel_name, city, state, address)
+        print(f"✅ [Background] Report generated ({len(report_html)} chars)")
+        
+        send_report_email(data, report_html)
+        print(f"📨 [Background] Report email sent to {email}")
+        
+    except Exception as e:
+        print(f"❌ [Background] Error generating/sending report: {e}")
+        import traceback
+        print(f"❌ [Background] Traceback:\n{traceback.format_exc()}")
+
+@app.route('/api/generate-report', methods=['POST', 'OPTIONS'])
 def generate_report():
     """
     Main endpoint: receives form data, generates report, sends email
     """
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     try:
         # Get form data
         data = request.json
+        
+        if not data:
+            print("❌ No JSON data received")
+            return jsonify({'error': 'No data provided'}), 400
+        
+        print(f"📥 Received data: {data.keys()}")
+        
         hotel_name = data.get('hotelName')
         city = data.get('city')
         state = data.get('state')
@@ -72,32 +134,54 @@ def generate_report():
         
         # Validate required fields
         if not all([hotel_name, city, state, contact_name, email]):
-            return jsonify({'error': 'Missing required fields'}), 400
+            missing = []
+            if not hotel_name: missing.append('hotelName')
+            if not city: missing.append('city')
+            if not state: missing.append('state')
+            if not contact_name: missing.append('contactName')
+            if not email: missing.append('email')
+            print(f"❌ Missing fields: {missing}")
+            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
         
         print(f"📧 New lead: {hotel_name} from {contact_name} ({email})")
         
-        # Step 1: Send immediate confirmation email
-        send_confirmation_email(data)
-        print(f"✅ Confirmation email sent to {email}")
+        # Step 1: Send immediate confirmation email (synchronously)
+        try:
+            send_confirmation_email(data)
+            print(f"✅ Confirmation email sent to {email}")
+        except Exception as e:
+            print(f"⚠️ Confirmation email failed: {e}")
+            return jsonify({
+                'error': 'Failed to send confirmation email',
+                'details': str(e)
+            }), 500
         
-        # Step 2: Generate report using Claude
-        print(f"🤖 Generating report for {hotel_name}...")
-        report_html = generate_hotel_report(hotel_name, city, state, address)
-        print(f"✅ Report generated ({len(report_html)} chars)")
+        # Step 2: Start background thread to generate and send report
+        # This prevents timeout issues
+        background_thread = threading.Thread(
+            target=generate_and_send_report_background,
+            args=(data,),
+            daemon=True
+        )
+        background_thread.start()
+        print(f"🚀 Background report generation started for {hotel_name}")
         
-        # Step 3: Send report email
-        send_report_email(data, report_html)
-        print(f"📨 Report email sent to {email}")
-        
+        # Return success immediately after confirmation email
         return jsonify({
             'success': True,
-            'message': f'Report generated and sent to {email}',
+            'message': f'Confirmation sent to {email}. Full report will arrive within 10 minutes.',
             'hotel': hotel_name
         }), 200
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"❌ Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Traceback:\n{error_details}")
+        return jsonify({
+            'error': str(e),
+            'message': 'Internal server error - check logs for details'
+        }), 500
 
 def generate_hotel_report(hotel_name, city, state, address):
     """
