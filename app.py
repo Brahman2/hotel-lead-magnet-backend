@@ -260,6 +260,14 @@ def send_confirmation_email(data):
     Send immediate confirmation email via SMTP
     """
     try:
+        print(f"📧 Attempting to send confirmation email to {data['email']}...")
+        
+        # Check SMTP credentials first
+        if not SMTP_USERNAME or not SMTP_PASSWORD:
+            raise Exception("SMTP credentials not configured")
+        
+        print(f"📧 SMTP Config: {SMTP_HOST}:{SMTP_PORT}, User: {SMTP_USERNAME}")
+        
         msg = MIMEMultipart('alternative')
         msg['From'] = FROM_EMAIL
         msg['To'] = data['email']
@@ -320,14 +328,28 @@ def send_confirmation_email(data):
         
         msg.attach(MIMEText(html_body, 'html'))
         
-        # Send via SMTP
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        # Send via SMTP with timeout
+        print(f"📧 Connecting to SMTP server...")
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+            print(f"📧 Starting TLS...")
             server.starttls()
+            print(f"📧 Logging in...")
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            print(f"📧 Sending message...")
             server.send_message(msg)
+            print(f"✅ Confirmation email sent successfully!")
             
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ SMTP Authentication failed: {str(e)}")
+        print(f"❌ Check your Gmail App Password is correct!")
+        raise Exception(f"Email authentication failed - check SMTP credentials")
+    except smtplib.SMTPException as e:
+        print(f"❌ SMTP Error: {str(e)}")
+        raise Exception(f"Email sending failed: {str(e)}")
     except Exception as e:
-        print(f"Error sending confirmation email: {str(e)}")
+        print(f"❌ Error sending confirmation email: {str(e)}")
+        import traceback
+        print(f"❌ Traceback:\n{traceback.format_exc()}")
         raise
 
 def send_report_email(data, report_html):
@@ -361,14 +383,19 @@ def send_report_email(data, report_html):
         
         msg.attach(MIMEText(email_html, 'html'))
         
-        # Send via SMTP
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        # Send via SMTP with timeout
+        print(f"📧 [Report] Connecting to SMTP server...")
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+            print(f"📧 [Report] Starting TLS...")
             server.starttls()
+            print(f"📧 [Report] Logging in...")
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            print(f"📧 [Report] Sending message...")
             server.send_message(msg)
+            print(f"✅ [Report] Email sent successfully!")
             
     except Exception as e:
-        print(f"Error sending report email: {str(e)}")
+        print(f"❌ [Report] Error sending report email: {str(e)}")
         raise
 
 if __name__ == '__main__':
