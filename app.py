@@ -2,7 +2,9 @@
 Hotel Lead Magnet Backend
 Automated report generation and email delivery
 """
-
+import googlemaps
+from datetime import datetime
+import math
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import anthropic
@@ -35,6 +37,7 @@ CORS(app, resources={
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 FROM_EMAIL = os.getenv('FROM_EMAIL', 'daleb@bunten.ca')  # Must be verified in SendGrid
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 # Validate required environment variables
 if not ANTHROPIC_API_KEY:
@@ -43,6 +46,8 @@ if not SENDGRID_API_KEY:
     print("WARNING: SENDGRID_API_KEY not set! Email functionality will be disabled.")
 if not FROM_EMAIL:
     print("WARNING: FROM_EMAIL not set!")
+if not GOOGLE_MAPS_API_KEY:
+    print("WARNING: GOOGLE_MAPS_API_KEY not set!")
 
 # Initialize Anthropic client
 client = None
@@ -54,6 +59,17 @@ if ANTHROPIC_API_KEY:
         print(f"❌ Error initializing Anthropic client: {e}")
 else:
     print("❌ Cannot initialize Anthropic client - API key missing")
+
+# Initialize Google Maps client
+gmaps = None
+if GOOGLE_MAPS_API_KEY:
+    try:
+        gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+        print("✅ Google Maps client initialized successfully")
+    except Exception as e:
+        print(f"❌ Error initializing Google Maps client: {e}")
+else:
+    print("❌ Cannot initialize Google Maps client - API key missing")
 
 @app.route('/', methods=['GET'])
 def home():
@@ -72,7 +88,8 @@ def health():
         'anthropic_client': client is not None,
         'anthropic_api_key': ANTHROPIC_API_KEY is not None and len(ANTHROPIC_API_KEY) > 10,
         'sendgrid_configured': SENDGRID_API_KEY is not None and SENDGRID_AVAILABLE,
-        'from_email': FROM_EMAIL is not None
+        'from_email': FROM_EMAIL is not None,
+        'google_maps_configured': gmaps is not None
     }
     
     all_healthy = all(checks.values())
@@ -82,6 +99,121 @@ def health():
         'checks': checks,
         'timestamp': datetime.now().isoformat()
     }), 200 if all_healthy else 503
+
+@app.route('/api/find-competitors', methods=['POST', 'OPTIONS'])
+def find_competitors():
+    """
+    Find competitor hotels near target hotel
+    Returns: target hotel location + list of competitors
+    """
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        data = request.json
+        hotel_name = data.get('hotel_name')
+        city = data.get('city')
+        state = data.get('state', '')
+        
+        print(f"Finding competitors for: {hotel_name}, {city}, {state}")
+        
+        if not gmaps:
+            return jsonify({
+                'error': 'Google Maps not configured',
+                'message': 'Google Maps API key is missing'
+            }), 500
+        
+        # Step 1: Geocode target hotel
+        search_query = f"{hotel_name}, {city}, {state}"
+        geocode_result = gmaps.geocode(search_query)
+        
+        if not geocode_result:
+            return jsonify({
+                'error': 'Hotel not found',
+                'message': f'Could not find {hotel_name} in {city}'
+            }), 404
+        
+        # Extract location
+        target_location = geocode_result[0]['geometry']['location']
+        target_lat = target_location['lat']
+        target_lng = target_location['lng']
+        
+        print(f"Target hotel location: {target_lat}, {target_lng}")
+        
+        # Step 2: Search for nearby hotels (2 mile radius = 3,219 meters)
+        nearby_results = gmaps.places_nearby(
+            location=(target_lat, target_lng),
+            radius=3219,  # 2 miles in meters
+            type='lodging',
+            keyword='hotel'
+        )
+        
+        # Step 3: Process competitors
+        competitors = []
+        target_name_lower = hotel_name.lower()
+        
+        for place in nearby_results.get('results', []):
+            place_name = place.get('name', '')
+            
+            # Skip if it's the target hotel (fuzzy match)
+            if target_name_lower in place_name.lower() or place_name.lower() in target_name_lower:
+                continue
+            
+            # Skip if no location
+            if 'geometry' not in place or 'location' not in place['geometry']:
+                continue
+            
+            comp_location = place['geometry']['location']
+            comp_lat = comp_location['lat']
+            comp_lng = comp_location['lng']
+            
+            # Calculate distance
+            distance_miles = calculate_distance(
+                target_lat, target_lng,
+                comp_lat, comp_lng
+            )
+            
+            competitors.append({
+                'name': place_name,
+                'lat': comp_lat,
+                'lng': comp_lng,
+                'rating': place.get('rating', 0),
+                'reviews': place.get('user_ratings_total', 0),
+                'price_level': place.get('price_level', 0),
+                'distance_miles': round(distance_miles, 2),
+                'place_id': place.get('place_id', ''),
+                'address': place.get('vicinity', '')
+            })
+        
+        # Sort by distance
+        competitors.sort(key=lambda x: x['distance_miles'])
+        
+        # Limit to 15 closest
+        competitors = competitors[:15]
+        
+        print(f"Found {len(competitors)} competitors")
+        
+        return jsonify({
+            'success': True,
+            'target': {
+                'name': hotel_name,
+                'lat': target_lat,
+                'lng': target_lng,
+                'address': geocode_result[0].get('formatted_address', '')
+            },
+            'competitors': competitors,
+            'total_count': len(competitors)
+        })
+        
+    except Exception as e:
+        print(f"Error finding competitors: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Failed to find competitors',
+            'message': str(e)
+        }), 500
 
 def generate_and_send_report_background(data):
     """
@@ -287,7 +419,7 @@ def send_confirmation_email(data):
             <p>Thank you for requesting a <strong>Public Signals Performance Report</strong> for <strong>{data['hotelName']}</strong>.</p>
             
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                <h3 style="margin-top: 0; color: #1e293b;">📋 Hotel Details:</h3>
+                <h3 style="margin-top: 0; color: #1e3A8A;">📋 Hotel Details:</h3>
                 <ul style="list-style: none; padding: 0;">
                     <li>📍 <strong>Property:</strong> {data['hotelName']}</li>
                     <li>🏙️ <strong>Location:</strong> {data['city']}, {data['state']}</li>
@@ -345,101 +477,6 @@ def send_confirmation_email(data):
         import traceback
         print(f"❌ Traceback:\n{traceback.format_exc()}")
         raise
-    """
-    Send immediate confirmation email via SMTP
-    """
-    try:
-        print(f"📧 Attempting to send confirmation email to {data['email']}...")
-        
-        # Check SMTP credentials first
-        if not SMTP_USERNAME or not SMTP_PASSWORD:
-            raise Exception("SMTP credentials not configured")
-        
-        print(f"📧 SMTP Config: {SMTP_HOST}:{SMTP_PORT}, User: {SMTP_USERNAME}")
-        
-        msg = MIMEMultipart('alternative')
-        msg['From'] = FROM_EMAIL
-        msg['To'] = data['email']
-        msg['Subject'] = f"Your Hotel Performance Report for {data['hotelName']} is Being Generated"
-        
-        html_body = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px;">
-                Your Report is Being Generated! 🎯
-            </h2>
-            
-            <p>Hi <strong>{data['contactName']}</strong>,</p>
-            
-            <p>Thank you for requesting a <strong>Public Signals Performance Report</strong> for <strong>{data['hotelName']}</strong>.</p>
-            
-            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                <h3 style="margin-top: 0; color: #1e293b;">📋 Hotel Details:</h3>
-                <ul style="list-style: none; padding: 0;">
-                    <li>📍 <strong>Property:</strong> {data['hotelName']}</li>
-                    <li>🏙️ <strong>Location:</strong> {data['city']}, {data['state']}</li>
-                    <li>🏠 <strong>Address:</strong> {data.get('address', 'Not provided')}</li>
-                    <li>📧 <strong>Report Email:</strong> {data['email']}</li>
-                </ul>
-            </div>
-            
-            <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <strong>⏰ Timeline:</strong> Your comprehensive report is being generated now and will arrive in your inbox within 5-10 minutes!
-            </div>
-            
-            <h3 style="color: #1e293b;">📊 What's Being Analyzed:</h3>
-            <ul style="line-height: 1.8;">
-                <li>✅ OTA Rankings & Visibility</li>
-                <li>✅ SEO & Organic Search</li>
-                <li>✅ Social Media Engagement</li>
-                <li>✅ Review Management</li>
-                <li>✅ Revenue Positioning</li>
-                <li>✅ Distribution Analysis</li>
-                <li>✅ E-commerce Experience</li>
-                <li>✅ Listing Quality</li>
-                <li>✅ Brand Protection</li>
-                <li>✅ Direct Booking Opportunities</li>
-            </ul>
-            
-            <p>Questions? Just reply to this email.</p>
-            
-            <p>Best regards,<br>
-            <strong>Your Hotel Analytics Team</strong></p>
-            
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-            
-            <p style="font-size: 12px; color: #64748b;">
-                Report requested on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
-            </p>
-        </body>
-        </html>
-        """
-        
-        msg.attach(MIMEText(html_body, 'html'))
-        
-        # Send via SMTP with timeout
-        print(f"📧 Connecting to SMTP server...")
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
-            print(f"📧 Starting TLS...")
-            server.starttls()
-            print(f"📧 Logging in...")
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            print(f"📧 Sending message...")
-            server.send_message(msg)
-            print(f"✅ Confirmation email sent successfully!")
-            
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ SMTP Authentication failed: {str(e)}")
-        print(f"❌ Check your Gmail App Password is correct!")
-        raise Exception(f"Email authentication failed - check SMTP credentials")
-    except smtplib.SMTPException as e:
-        print(f"❌ SMTP Error: {str(e)}")
-        raise Exception(f"Email sending failed: {str(e)}")
-    except Exception as e:
-        print(f"❌ Error sending confirmation email: {str(e)}")
-        import traceback
-        print(f"❌ Traceback:\n{traceback.format_exc()}")
-        raise
 
 def send_report_email(data, report_html):
     """
@@ -483,6 +520,27 @@ def send_report_email(data, report_html):
     except Exception as e:
         print(f"❌ [Report] Error sending report email: {str(e)}")
         raise
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate distance between two points in miles
+    Using Haversine formula
+    """
+    R = 3959  # Radius of Earth in miles
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = (math.sin(delta_lat / 2) ** 2 +
+         math.cos(lat1_rad) * math.cos(lat2_rad) *
+         math.sin(delta_lon / 2) ** 2)
+    
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance = R * c
+    
+    return distance
 
 if __name__ == '__main__':
     # For local development and Railway
