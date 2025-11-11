@@ -32,6 +32,7 @@ CORS(app, resources={
             "https://lovable.dev",
             "https://*.lovable.dev"
             "https://*.lovableproject.com"
+            "https://*.lovable.app"  # ← ADD THIS TOO
         ]
     }
 })  # Enable CORS for your frontend
