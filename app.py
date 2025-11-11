@@ -23,19 +23,7 @@ except ImportError:
     print("⚠️ SendGrid not installed - email functionality disabled")
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://delightful-pavlova-1439dc.netlify.app",
-            "http://localhost:*",
-            "https://*.netlify.app"
-            "https://lovable.dev",
-            "https://*.lovable.dev"
-            "https://*.lovableproject.com"
-            "https://*.lovable.app"  # ← ADD THIS TOO
-        ]
-    }
-})  # Enable CORS for your frontend
+CORS(app)  # Allow all origins (for testing)
 
 # Configuration from environment variables
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
