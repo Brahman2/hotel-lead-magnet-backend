@@ -29,6 +29,8 @@ CORS(app, resources={
             "https://delightful-pavlova-1439dc.netlify.app",
             "http://localhost:*",
             "https://*.netlify.app"
+            "https://lovable.dev",
+            "https://*.lovable.dev"
         ]
     }
 })  # Enable CORS for your frontend
