@@ -31,6 +31,7 @@ CORS(app, resources={
             "https://*.netlify.app"
             "https://lovable.dev",
             "https://*.lovable.dev"
+            "https://*.lovableproject.com"
         ]
     }
 })  # Enable CORS for your frontend
