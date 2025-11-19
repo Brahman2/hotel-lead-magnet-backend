@@ -469,14 +469,155 @@ Subscriptions (id, user_id, stripe_customer_id, plan, status)
 
 ---
 
-## Post-Launch Roadmap (Q1 2026)
+## Phase 0 Stretch Goals (Optional - If Time Allows)
 
-**Deferred to March-April 2026:**
-- Multi-tenant architecture (multiple team members per account)
-- Team collaboration features (shared reports, comments, assignments)
-- White-label options
-- API access for integrations
-- Advanced competitor intelligence (price tracking, promo detection)
+**Timeline:** Opportunistic (can be added during Weeks 1-4 if ahead of schedule)
+**Effort:** 15-25 hours total
+
+These are **nice-to-have** enhancements that would elevate the Phase 0 experience but are not required for Feb 1 launch. Only pursue if core features are completed early.
+
+### 🎁 AI-Generated Video Summary (8 hours)
+- 60-second video recap of analysis results
+- Voiceover explaining key findings
+- Animated charts and highlights
+- Shareable on social media
+- **Value:** Increased viral sharing, professional touch
+
+### 🎁 Voice-Over Narration During Scanning (4 hours)
+- Audio explanation during analysis
+- "Now analyzing your Google Business Profile..."
+- Background ambient sound for engagement
+- **Value:** More engaging wait experience
+
+### 🎁 Live Chat Support Widget (5 hours)
+- Real-time help during analysis
+- Answer common questions
+- Intercom or Drift integration
+- **Value:** Reduced abandonment, better support
+
+### 🎁 Social Sharing Features (3 hours)
+- "Share my hotel score" button
+- Pre-populated social media posts
+- Branded graphics with score badge
+- **Value:** Organic marketing, word-of-mouth growth
+
+### 🎁 3D Hotel Location Visualization (8 hours)
+- Interactive 3D map of property
+- Nearby attractions and landmarks
+- Google Maps 3D integration
+- **Value:** Premium feel, better context
+
+**Priority Order (if time allows):**
+1. Social Sharing (highest ROI for growth)
+2. Live Chat (reduces support burden)
+3. Voice-Over Narration (enhances UX)
+4. Video Summary (impressive but time-intensive)
+5. 3D Visualization (nice but not essential)
+
+---
+
+## 3-6 Month Post-Launch Product Roadmap
+
+**Timeline:** February - July 2026
+**Goal:** Scale platform, add premium features, increase revenue per user
+
+These features will be developed **after successful launch** once we have:
+- ✅ Initial user feedback
+- ✅ Revenue validation
+- ✅ Proven product-market fit
+- ✅ Resources for expansion
+
+### Q1 2026 (Feb - Apr): Foundation Enhancements
+
+#### Multi-Tenant Architecture & Team Collaboration (40 hours)
+- Multiple team members per account
+- Role-based permissions (Admin, Manager, Viewer)
+- Shared reports and annotations
+- Comment threads on insights
+- Team activity feed
+- **Target Market:** Hotel groups with 5+ properties, agencies
+
+#### Mobile Apps (60 hours)
+- iOS and Android native apps
+- Push notifications for score changes
+- Quick property overview dashboard
+- Mobile-optimized charts
+- **Target Market:** On-the-go hotel managers
+
+#### Competitor Alerts & Monitoring (25 hours)
+- Real-time alerts when competitors change pricing
+- Ranking position notifications
+- New competitor detection in market
+- Weekly competitor digest emails
+- **Value:** Proactive competitive intelligence
+
+### Q2 2026 (May - Jul): Advanced Intelligence
+
+#### AI Recommendations Engine (35 hours)
+- Personalized action plans based on property data
+- Priority ranking of improvements
+- ROI estimates for each recommendation
+- Success probability scoring
+- Automated task list generation
+- **Value:** Actionable insights, not just data
+
+#### PMS & OTA Integrations (50 hours)
+- Opera PMS integration
+- Mews integration
+- Cloudbeds integration
+- Booking.com API for real-time data
+- Expedia API connection
+- **Value:** Automated data sync, deeper insights
+
+#### White-Label Reports (30 hours)
+- Custom branding with hotel's logo/colors
+- Branded PDF exports
+- Custom domain for report URLs
+- Agency partner program
+- **Value:** Professional reports, B2B revenue stream
+
+#### Predictive Analytics (40 hours)
+- ML model to predict score trends
+- Seasonality detection
+- Forecast competitor movements
+- Identify improvement opportunities
+- **Value:** Proactive recommendations, premium feature
+
+### Q3 2026 (Future Consideration)
+
+#### Advanced Features
+- Automated social media posting (integrate insights to hotel's social accounts)
+- A/B testing platform for report layouts
+- Custom KPI tracking
+- Advanced caching (Redis) for sub-second performance
+- Internationalization (Spanish, French, German)
+- Partner/Referral program
+- Annual billing plans (20% discount)
+- Enterprise tier (50+ properties, custom pricing)
+- API access for third-party integrations
+- Revenue management integration (pricing optimization)
+
+**Investment Requirements (Post-Launch):**
+- Additional developers: 1-2 FTE (~$120-180K/year)
+- Infrastructure scaling: $500-1,000/month
+- Sales & marketing: $2,000-5,000/month
+- Customer support: 0.5-1 FTE (~$40-60K/year)
+
+**Revenue Targets (to justify expansion):**
+- Month 3: $5,000+ MRR
+- Month 6: $25,000+ MRR
+- Month 12: $75,000+ MRR
+
+---
+
+## Deferred Features (Not Planned - Low ROI)
+
+These features were considered but **not prioritized** due to complexity vs. value:
+- ❌ Full multi-language support (beyond English) - Low demand initially
+- ❌ On-premise deployment - SaaS model preferred
+- ❌ Custom AI model training - Anthropic API sufficient
+- ❌ Blockchain/Web3 features - No clear use case
+- ❌ Gamification (badges, leaderboards) - Doesn't fit professional audience
 
 **These features are valuable but not critical for initial launch and revenue generation.**
 
