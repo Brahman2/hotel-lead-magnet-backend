@@ -359,14 +359,14 @@ Subscriptions (id, user_id, stripe_customer_id, plan, status)
 - ✅ Review preview integration
 - ✅ Booking.com ranking fetch
 - ✅ Preview window UI
-- **Milestone:** Live scanning demo ready
+- **Milestone:** Live scanning demo ready **(Dec 2, 2025)**
 
 ### Week 3-4: Competitor Enhancements + 40 Metrics Start (Dec 3 - Dec 16)
 - ✅ Enhanced map with mouseover
 - ✅ Competitor ranking summary
 - ✅ Backend: 40-metric AI prompt
 - ✅ Backend: OTA data scraping
-- **Milestone:** Phase 0 feature complete
+- **Milestone:** Phase 0 feature complete **(Dec 16, 2025)**
 
 ### Week 5-6: Database + Auth + Dashboard (Dec 17 - Dec 30)
 - ✅ PostgreSQL setup and schema
@@ -374,28 +374,28 @@ Subscriptions (id, user_id, stripe_customer_id, plan, status)
 - ✅ User registration/login
 - ✅ Main dashboard layout
 - ✅ Multi-property support
-- **Milestone:** SaaS foundation live
+- **Milestone:** SaaS foundation live **(Dec 30, 2025)**
 
 ### Week 7-8: Historical Tracking + Charts (Dec 31 - Jan 13)
 - ✅ 40-metric frontend components
 - ✅ Charts and visualizations
 - ✅ Historical data storage
 - ✅ Progress tracking UI
-- **Milestone:** Full 40-metric analysis with history
+- **Milestone:** Full 40-metric analysis with history **(Jan 13, 2026)**
 
 ### Week 9-10: Automation + Billing (Jan 14 - Jan 27)
 - ✅ Automated analysis engine
 - ✅ Stripe billing integration
 - ✅ Feature management interface
 - ✅ Final testing and polish
-- **Milestone:** Production-ready platform
+- **Milestone:** Production-ready platform **(Jan 27, 2026)**
 
 ### Week 10.5: Launch Prep (Jan 28 - Feb 1)
 - 🚀 Final QA testing
 - 🚀 Performance optimization
 - 🚀 Documentation and onboarding
 - 🚀 Marketing site updates
-- **Milestone:** PUBLIC LAUNCH FEBRUARY 1, 2026
+- **Milestone:** 🚀 **PUBLIC LAUNCH (FEBRUARY 1, 2026)**
 
 ---
 
@@ -446,7 +446,7 @@ Subscriptions (id, user_id, stripe_customer_id, plan, status)
 
 ---
 
-## Success Metrics (Launch Day - Feb 1)
+## Success Metrics (Launch Day - February 1, 2026)
 
 ### Technical
 - ✅ All 40 metrics functional
@@ -455,11 +455,17 @@ Subscriptions (id, user_id, stripe_customer_id, plan, status)
 - ✅ < 500ms page load times
 - ✅ Zero critical bugs
 
-### Business
+### Business (By Feb 28, 2026)
 - 🎯 50+ beta users signed up
 - 🎯 10+ paying customers (Free → Pro)
 - 🎯 $1,000+ MRR
 - 🎯 4.5+ star user satisfaction
+
+### Growth Milestones
+- **March 2026:** First $2K MRR month
+- **May 2026:** $5K MRR target
+- **August 2026:** $25K MRR target
+- **February 2027:** $75K MRR target
 
 ### User Experience
 - ✅ Interactive scanning delights users
@@ -604,9 +610,9 @@ These features will be developed **after successful launch** once we have:
 - Customer support: 0.5-1 FTE (~$40-60K/year)
 
 **Revenue Targets (to justify expansion):**
-- Month 3: $5,000+ MRR
-- Month 6: $25,000+ MRR
-- Month 12: $75,000+ MRR
+- **Month 3 (May 2026):** $5,000+ MRR
+- **Month 6 (August 2026):** $25,000+ MRR
+- **Month 12 (February 2027):** $75,000+ MRR
 
 ---
 
