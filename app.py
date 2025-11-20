@@ -141,31 +141,39 @@ def find_competitors():
             keyword='hotel'
         )
         
-        # Step 3: Process competitors
+        # Step 3: Process competitors and find target hotel rating
         competitors = []
         target_name_lower = hotel_name.lower()
-        
+        target_rating = None
+        target_reviews = 0
+
         for place in nearby_results.get('results', []):
             place_name = place.get('name', '')
-            
-            # Skip if it's the target hotel (fuzzy match)
-            if target_name_lower in place_name.lower() or place_name.lower() in target_name_lower:
+
+            # Check if this is the target hotel (fuzzy match)
+            is_target = target_name_lower in place_name.lower() or place_name.lower() in target_name_lower
+
+            if is_target:
+                # Capture target hotel rating
+                target_rating = place.get('rating', 0)
+                target_reviews = place.get('user_ratings_total', 0)
+                print(f"Found target hotel rating: {target_rating} ({target_reviews} reviews)")
                 continue
-            
+
             # Skip if no location
             if 'geometry' not in place or 'location' not in place['geometry']:
                 continue
-            
+
             comp_location = place['geometry']['location']
             comp_lat = comp_location['lat']
             comp_lng = comp_location['lng']
-            
+
             # Calculate distance
             distance_miles = calculate_distance(
                 target_lat, target_lng,
                 comp_lat, comp_lng
             )
-            
+
             competitors.append({
                 'name': place_name,
                 'lat': comp_lat,
@@ -177,23 +185,30 @@ def find_competitors():
                 'place_id': place.get('place_id', ''),
                 'address': place.get('vicinity', '')
             })
-        
+
         # Sort by distance
         competitors.sort(key=lambda x: x['distance_miles'])
-        
+
         # Limit to 15 closest
         competitors = competitors[:15]
-        
+
         print(f"Found {len(competitors)} competitors")
-        
+
+        # Build target response with rating if found
+        target_data = {
+            'name': hotel_name,
+            'lat': target_lat,
+            'lng': target_lng,
+            'address': geocode_result[0].get('formatted_address', '')
+        }
+
+        if target_rating:
+            target_data['rating'] = target_rating
+            target_data['reviews'] = target_reviews
+
         return jsonify({
             'success': True,
-            'target': {
-                'name': hotel_name,
-                'lat': target_lat,
-                'lng': target_lng,
-                'address': geocode_result[0].get('formatted_address', '')
-            },
+            'target': target_data,
             'competitors': competitors,
             'total_count': len(competitors)
         })
