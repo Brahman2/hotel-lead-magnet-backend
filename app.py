@@ -130,9 +130,22 @@ def find_competitors():
         target_location = geocode_result[0]['geometry']['location']
         target_lat = target_location['lat']
         target_lng = target_location['lng']
-        
+
         print(f"Target hotel location: {target_lat}, {target_lng}")
-        
+
+        # Step 1.5: Get target hotel rating using text search
+        target_rating = None
+        target_reviews = 0
+        try:
+            text_search = gmaps.places(query=f"{hotel_name}, {city}, {state}")
+            if text_search.get('results') and len(text_search['results']) > 0:
+                target_place = text_search['results'][0]
+                target_rating = target_place.get('rating')
+                target_reviews = target_place.get('user_ratings_total', 0)
+                print(f"Found target hotel via text search: {target_place.get('name')} - Rating: {target_rating} ({target_reviews} reviews)")
+        except Exception as e:
+            print(f"Could not fetch target hotel rating: {e}")
+
         # Step 2: Search for nearby hotels (2 mile radius = 3,219 meters)
         nearby_results = gmaps.places_nearby(
             location=(target_lat, target_lng),
@@ -141,23 +154,22 @@ def find_competitors():
             keyword='hotel'
         )
         
-        # Step 3: Process competitors and find target hotel rating
+        # Step 3: Process competitors (exclude target hotel)
         competitors = []
-        target_name_lower = hotel_name.lower()
-        target_rating = None
-        target_reviews = 0
+        target_name_lower = hotel_name.lower().strip()
 
         for place in nearby_results.get('results', []):
             place_name = place.get('name', '')
 
-            # Check if this is the target hotel (fuzzy match)
+            # Check if this is the target hotel (fuzzy match) - skip it
             is_target = target_name_lower in place_name.lower() or place_name.lower() in target_name_lower
 
             if is_target:
-                # Capture target hotel rating
-                target_rating = place.get('rating', 0)
-                target_reviews = place.get('user_ratings_total', 0)
-                print(f"Found target hotel rating: {target_rating} ({target_reviews} reviews)")
+                # If we didn't get rating from text search, try to get it here
+                if not target_rating:
+                    target_rating = place.get('rating')
+                    target_reviews = place.get('user_ratings_total', 0)
+                    print(f"Found target hotel rating in nearby results: {target_rating} ({target_reviews} reviews)")
                 continue
 
             # Skip if no location
